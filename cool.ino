@@ -4,6 +4,11 @@
 #include <IRutils.h>
 #include <LiquidCrystal_I2C.h>
 #include <Wire.h>
+#include "arduino_secrets.h"
+#include <WiFi.h>
+
+WiFiClient wificlient;
+
 
 #define SDA 14                    //Define SDA pins
 #define SCL 13                    //Define SCL pins
@@ -42,6 +47,16 @@ bool player1;
 void setup() {
   // put your setup code here, to run once:
   Serial.begin(115200);
+
+  Serial.print("Connecting to wifi");
+  WiFi.begin(ssid, password);
+  while(WiFi.status() != WL_CONNECTED){
+    delay(250);
+    Serial.print(".");
+  }
+  Serial.println("\nConnected!");
+  wificlient = 
+  
   irrecv.enableIRIn();        // Start the receiver
 
   Wire.begin(SDA, SCL);           // attach the IIC pin
