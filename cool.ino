@@ -4,11 +4,14 @@
 #include <IRutils.h>
 #include <LiquidCrystal_I2C.h>
 #include <Wire.h>
-#include "arduino_secrets.h"
 #include <WiFi.h>
+#include <ArduinoMqttClient.h>
 
 WiFiClient wificlient;
+MqttClient mqtt(wificlient);
 
+char ssid[] = "RiceShop";
+char password[] = "password";
 
 #define SDA 14                    //Define SDA pins
 #define SCL 13                    //Define SCL pins
@@ -47,7 +50,6 @@ bool player1;
 void setup() {
   // put your setup code here, to run once:
   Serial.begin(115200);
-
   Serial.print("Connecting to wifi");
   WiFi.begin(ssid, password);
   while(WiFi.status() != WL_CONNECTED){
@@ -55,7 +57,15 @@ void setup() {
     Serial.print(".");
   }
   Serial.println("\nConnected!");
-  wificlient = 
+  Serial.println("Connecting to mqtt broker...");
+  if(!mqtt.connect("192.168.83.247", 1883)){
+    Serial.println("Failed.");
+    Serial.println(mqtt.connectError());
+    while(1);
+  }
+  Serial.println("Connected.");
+  mqtt.onMessage(onMqttMessage);
+  mqtt.subscribe("Paredes/P2Input");
   
   irrecv.enableIRIn();        // Start the receiver
 
@@ -72,6 +82,8 @@ void setup() {
 }
 
 void loop() {
+  mqtt.poll();
+  
   //lcd.setCursor(0,1); // row 1 column 0
   lcd.setCursor(0,0);
   if(player1){
@@ -139,4 +151,11 @@ void matrixColsVal(int value) {
   shiftOut(dataPin, clockPin, MSBFIRST, value);
   // make latchPin output high level, then 74HC595 will update the data to parallel output
   digitalWrite(latchPin, HIGH);
+}
+
+void onMqttMessage(int messageSize){
+  // use the Stream interface to print the contents
+  while (mqtt.available()) {
+    Serial.print((char)mqtt.read());
+  }
 }
