@@ -1,26 +1,33 @@
 #include <Arduino.h>
-#include <IRremoteESP8266.h>
-#include <IRrecv.h>
-#include <IRutils.h>
-#include <LiquidCrystal_I2C.h>
-#include <Wire.h>
+
 #include <WiFi.h>
 #include <ArduinoMqttClient.h>
 
+///////// WIFI AND MQTT /////////
 WiFiClient wificlient;
 MqttClient mqtt(wificlient);
 
 char ssid[] = "RiceShop";
 char password[] = "password";
+char* msg;
+
+///////// LCD /////////
+#include <LiquidCrystal_I2C.h>
+#include <Wire.h>
 
 #define SDA 14                    //Define SDA pins
 #define SCL 13                    //Define SCL pins
 LiquidCrystal_I2C lcd(0x27,16,2); 
 
+///////// IR REMOTE /////////
+#include <IRremoteESP8266.h>
+#include <IRrecv.h>
+#include <IRutils.h>
 const uint16_t recvPin = 33; // Infrared receiving pin
 IRrecv irrecv(recvPin);      // Create a class object used to receive class
 decode_results results;       // Create a decoding results class object
 
+///////// LED MATRIX /////////
 int latchPin = 2;          // Pin connected to ST_CP of 74HC595（Pin12）
 int clockPin = 4;          // Pin connected to SH_CP of 74HC595（Pin11）
 int dataPin = 15;          // Pin connected to DS of 74HC595（Pin14）
@@ -45,8 +52,9 @@ const int data[] PROGMEM = {
   0x00, 0x00, 0x7F, 0x48, 0x48, 0x40, 0x00, 0x00  // "F"
 };
 
+///////// GAME STATE /////////
 bool player1;
-
+bool gameFinished;
 void setup() {
   // put your setup code here, to run once:
   Serial.begin(115200);
@@ -66,7 +74,7 @@ void setup() {
   Serial.println("Connected.");
   mqtt.onMessage(onMqttMessage);
   mqtt.subscribe("Paredes/P2Input");
-  
+  msg = (char*)calloc(20,20);
   irrecv.enableIRIn();        // Start the receiver
 
   Wire.begin(SDA, SCL);           // attach the IIC pin
@@ -79,11 +87,13 @@ void setup() {
   pinMode(clockPin, OUTPUT);
   pinMode(dataPin, OUTPUT);
   player1 = true;
+  gameFinished = false;
 }
 
 void loop() {
   mqtt.poll();
-  
+
+  /*
   //lcd.setCursor(0,1); // row 1 column 0
   lcd.setCursor(0,0);
   if(player1){
@@ -126,13 +136,12 @@ void loop() {
     for(int i = 0; i < 8; i++){
       matrixRowsVal(data[(j*8)+i]);
       matrixColsVal(~cols);
-      delay(1);
+      delay(100);
       matrixRowsVal(0x00);
       cols <<= 1;  
     }
   }
-  delay(250);
-  
+  */
 }
 
 void matrixRowsVal(int value) {
@@ -155,7 +164,40 @@ void matrixColsVal(int value) {
 
 void onMqttMessage(int messageSize){
   // use the Stream interface to print the contents
-  while (mqtt.available()) {
-    Serial.print((char)mqtt.read());
+  int i = 0;
+  while (mqtt.available() && i < messageSize) {
+    msg[i] = (char)mqtt.read();
+    i++;
   }
+  for(; i < 20; i++){
+    msg[i] = 0;
+  }
+  Serial.print("Received:");
+  Serial.println(msg);
+  if(strcmp(msg, "quit") == 0){
+    gameFinished = true;
+  }
+  else if(strcmp(msg, "getState") == 0){
+    sendMsg(gameStateToString());
+  }
+  else if(strcmp(msg, "resendp2turn") == 0){
+    sendMsg("p2turn");
+  }
+  else if(strstr(msg, "input:") != NULL){
+    char* msg2 = strstr(msg, ",");
+    char found[3] = {0};
+    found[0] = msg2[-1];
+    found[1] = msg2[1];
+    Serial.println(found);
+  }
+}
+
+void sendMsg(char* msg){
+  mqtt.beginMessage("Paredes/ESP32");
+  mqtt.print(msg);
+  mqtt.endMessage();
+}
+
+char* gameStateToString(){
+  return "woo";
 }

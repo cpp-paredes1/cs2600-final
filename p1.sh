@@ -3,12 +3,10 @@ MQTTSUB="C:/Program Files/mosquitto/mosquitto_sub.exe"
 MQTTPUB="C:/Program Files/mosquitto/mosquitto_pub.exe"
 
 legal=0
-myinput="a"
-# while true
-# do
-	"$MQTTSUB" -t "Paredes/ESP32" | while read -r payload
+if [ $shouldExit == 0 ]; then
+"$MQTTSUB" -t "Paredes/ESP32" | while read -r payload
 	do
-		if [[ "$payload" == "p1turn" ]]; then
+		if [[ "$payload" == "p2turn" ]]; then
 			while [[ $legal == 0 ]]
 			do
 				in1="$(($RANDOM % 3 + 1))"

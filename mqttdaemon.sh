@@ -1,21 +1,19 @@
 #!/bin/bash
 MQTTSUB="C:/Program Files/mosquitto/mosquitto_sub.exe"
-runProj="C:/Users/minno/Documents/Code/CS2600/FINAL PROJ/cool/bin/finalproj.exe"
-cmd="C:/WINDOWS/system32/cmd.exe"
 while true
 do
 	"$MQTTSUB" -t "Paredes/ESP32" | while read -r payload
 	do
-		echo $payload
 		if [[ "$payload" == "1pmode" ]]; then
-			echo "1p"
+			echo "1P mode selected."
 			./p1.sh
-			echo "we oout"
+			echo "Concluded 1p mode"
 			break
 		elif [[ "$payload" == "2pmode" ]]; then
-			echo "2p"
+			echo "2P mode selected."
 			./p2.sh
-			break
+			echo "Concluded 2p mode"
 		fi
 	done
+	
 done
